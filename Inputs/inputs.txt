@@ -228,7 +228,7 @@
 
   op_mode(9)='spec-cl'
   optimization_type(9)='turn'
-  optimization_correlation(9) = ',mid'
+  optimization_correlation(9) = 'mid'
   op_point(9)=0.95
   op_point_start(9)=008.000
   op_point_end(9)=017.000
@@ -673,8 +673,8 @@
 
  &turn_data
         
-  activation_turn = .false.
-  acel_to_turn = .false.
+  activation_turn = .true.
+  acel_to_turn = .true.
   h_turn = 574 
   n_turn = 2
   dash_leg = 300
