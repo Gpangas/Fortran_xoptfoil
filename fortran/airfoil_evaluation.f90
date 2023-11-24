@@ -1372,9 +1372,8 @@ function calculate_objective_function(moment, drag, lift, alpha, viscrms, xtrt,&
       if(trim(optimization_correlation(i)) == 'end') then
         nend1 = i 
       end if
-      points = 1.d0
       increment = 1.D-9
-      aero_vector(i) = points
+      aero_vector(i) = 1.d0
       aero_vector(i+noppoint) = increment
       aero_vector(i+2*noppoint) = (1.d0 - increment)*100.d0
     else

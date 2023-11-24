@@ -68,8 +68,6 @@ subroutine take_off_evaluation(Cl_int, Cl_end, Cd_end, points)
     weight = weight*(1 + 0.5*(take_off%S_g-S_g_i) / take_off%S_g)
     num = num + 1
   end do 
-  
-  write(*,*) "Num = ", num
  
   climb%V_0 = V_to
   weight_payload = weight - take_off%weight_empty
