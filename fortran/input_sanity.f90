@@ -614,8 +614,7 @@ subroutine check_seed()
       end if
       if(trim(optimization_correlation(i)) == 'end') then
         nend = i
-        call take_off_evaluation(lift(ninit), lift(nend), drag(nend), checkval)
-        checkval = 1.d0/checkval 
+        checkval = 1.d0/1000 
       end if
     elseif (trim(optimization_type(i)) == 'climb') then
         
@@ -625,8 +624,7 @@ subroutine check_seed()
       end if
       if(trim(optimization_correlation(i)) == 'end') then
         nend = i
-        call climb_evaluation(ninit, nend, drag, lift, checkval)
-        checkval = 1.d0/checkval 
+        checkval = 1.d0/1000 
       end if
     elseif (trim(optimization_type(i)) == 'dash') then
         
@@ -636,8 +634,7 @@ subroutine check_seed()
       end if
       if(trim(optimization_correlation(i)) == 'end') then
         nend = i
-        call dash_evaluation(ninit, nend, ninit1, nend1, drag, lift, checkval)
-        checkval = 1.d0/checkval 
+        checkval = 1.d0/1000 
       end if
     elseif (trim(optimization_type(i)) == 'turn') then
         

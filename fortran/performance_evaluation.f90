@@ -66,6 +66,7 @@ subroutine take_off_evaluation(Cl_int, Cl_end, Cd_end, points)
     
     converge = abs((take_off%S_g-S_g_i) / take_off%S_g)
     weight = weight*(1 + 0.5*(take_off%S_g-S_g_i) / take_off%S_g)
+    num = num + 1
   end do 
  
   climb%V_0 = V_to
@@ -224,9 +225,14 @@ subroutine dash_evaluation(oppoint_init_d, oppoint_end_d, oppoint_init_t,      &
       if((T_t(i)-D_t(i)) .lt. 0.d0)then
         V_turn = V_t(i)
       else
-        V_turn = V_t(i)-(T_t(i)-D_t(i))/(((T_t(i)-D_t(i))-(T_t(i+1)-D_t(i+1)))/&
-                 (V_t(i)-V_t(i+1)))
-        exit acel_to_turn
+        if(i .EQ. 1)then
+          points = 0
+          return 
+        else
+          V_turn = V_t(i)-(T_t(i)-D_t(i))/(((T_t(i)-D_t(i))-(T_t(i+1)-D_t(i+1)))/&
+                   (V_t(i)-V_t(i+1)))
+          exit acel_to_turn
+        end if
       end if
     end do acel_to_turn
     
