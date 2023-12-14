@@ -132,7 +132,7 @@ subroutine read_inputs(input_file, search_type, global_search, local_search,   &
   namelist /xfoil_paneling_options/ npan, cvpar, cterat, ctrrat, xsref1,       &
             xsref2, xpref1, xpref2
   namelist /matchfoil_options/ match_foils, matchfoil_file
-  namelist /aircraft_data/ weight, S_w, A_w, e_w, S_expose, thrust_coeff,      &
+  namelist /aircraft_data/ weight_i, S_w, A_w, e_w, S_expose, thrust_coeff,      &
                            height, width, length, f_skin_roughness,            &
                            wetted_area, interference_factor, Cd_ld,            &
                            tail_config, tail_chord, t_c_ratio, max_t_x,        &
@@ -274,7 +274,7 @@ subroutine read_inputs(input_file, search_type, global_search, local_search,   &
   call namelist_check('constraints', iostat1, 'stop')
   
 ! Set defaults for aircraft_data namelist options
-  weight = 30
+  weight_i = 30
   S_w = 2
   A_w = 6
   e_w = 0.9
@@ -350,6 +350,7 @@ subroutine read_inputs(input_file, search_type, global_search, local_search,   &
   call namelist_check('turn_data', iostat1, 'warn')
   
 !Aircraft_data in derived type
+  weight = weight_i
   fuselage%height = height
   fuselage%width = width
   fuselage%length = length
@@ -373,6 +374,12 @@ subroutine read_inputs(input_file, search_type, global_search, local_search,   &
   take_off%S_g = S_g
   take_off%weight_empty = weight_empty
   take_off%weight_payload_ref = weight_payload_ref
+  take_off%CL_max = 0
+  take_off%CL_run = 0
+  take_off%CD_run = 0
+  take_off%V_to = 0
+  take_off%V_run = 0
+  take_off%points = 0
     
 !climb_data in derived type
   climb%acel = acel_to_climb
@@ -383,6 +390,14 @@ subroutine read_inputs(input_file, search_type, global_search, local_search,   &
   do i=1, 5
     climb%points_coeff(i) = points_coeff(i)
   end do
+  climb%RC_max = 0
+  climb%V = 0
+  climb%Cl = 0
+  climb%D = 0
+  climb%T = 0
+  climb%t_acel = 0
+  climb%points = 0
+  
 !dash_data in derived type
   dash%acel = acel_to_dash
   dash%time = time_dash
@@ -975,7 +990,7 @@ subroutine read_inputs(input_file, search_type, global_search, local_search,   &
 ! Aircraft_data namelist
   
   write(*,'(A)') "&aircraft_data"
-  write(*,*) " weight = ", weight
+  write(*,*) " weight = ", weight_i
   write(*,*) " S_w = ", S_w
   write(*,*) " A_w = ", A_w
   write(*,*) " e_w = ", e_w
@@ -1052,7 +1067,7 @@ subroutine read_inputs(input_file, search_type, global_search, local_search,   &
   write(*,*) " activation = ", turn%activation
   write(*,*) " acel = ", turn%acel
   write(*,*) " h = ", turn%h
-  write(*,*) " n = ", turn%h
+  write(*,*) " n = ", turn%n
   write(*,*) " dash_leg = ", turn%dash_leg
   write(*,'(A)') "/"
   write(*,*)
@@ -1325,7 +1340,7 @@ subroutine read_inputs(input_file, search_type, global_search, local_search,   &
   ! Aircraft_data namelist
   
   write(100,'(A)') "&aircraft_data"
-  write(100,*) " weight = ", weight
+  write(100,*) " weight = ", weight_i
   write(100,*) " S_w = ", S_w
   write(100,*) " A_w = ", A_w
   write(100,*) " e_w = ", e_w
@@ -1402,7 +1417,7 @@ subroutine read_inputs(input_file, search_type, global_search, local_search,   &
   write(100,*) " activation = ", turn%activation
   write(100,*) " acel = ", turn%acel
   write(100,*) " h = ", turn%h
-  write(100,*) " n = ", turn%h
+  write(100,*) " n = ", turn%n
   write(100,*) " dash_leg = ", turn%dash_leg
   write(100,'(A)') "/"
   write(100,*)
@@ -1658,6 +1673,7 @@ subroutine read_inputs(input_file, search_type, global_search, local_search,   &
       trim(optimization_type(i)) /= 'target-glide' .and.                       &
       trim(optimization_type(i)) /= 'target-sink'.and.                         &
       trim(optimization_type(i)) /= 'max-lift-slope'.and.                      &
+      trim(optimization_type(i)) /= 'max-lift-search'.and.                     &
       trim(optimization_type(i)) /= 'take-off'.and.                            &
       trim(optimization_type(i)) /= 'climb'.and.                               &
       trim(optimization_type(i)) /= 'dash'.and.                                &
@@ -1666,8 +1682,8 @@ subroutine read_inputs(input_file, search_type, global_search, local_search,   &
                    "min-sink', 'max-lift', 'max-xtr', "//                      &
                    "'target-lift', 'target-drag', 'target-moment', "//         &
                    "'target-xtrt', 'target-xtrb', 'target-glide', "//          &
-                   "'target-sink' or 'max-lift-slope' or 'max-lift-search', "//&
-                   "or 'take-off' or 'climb' or 'dash'.")
+                   "'target-sink', 'max-lift-slope', 'max-lift-search', "//    &
+                   "'take-off', 'climb' or 'dash'.")
     if (trim(optimization_type(i)) == 'max-lift-slope' .and. (noppoint == 1))  &
       call my_stop("at least two operating points are required for to "//      &
                    "maximize lift curve slope.")

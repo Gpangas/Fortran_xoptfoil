@@ -1327,9 +1327,14 @@ function calculate_objective_function(moment, drag, lift, alpha, viscrms, xtrt,&
         increment = 1.D-9
       end if
       if(trim(optimization_correlation(i)) == 'end') then
-        nend = i
-        call take_off_evaluation(lift(ninit), lift(nend), drag(nend), points)
-        increment = scale_factor(i)/points
+        if (viscrms(i) >= 1.d0) then
+          points = 1.d0
+          increment = 1.D-9
+        else
+          nend = i
+          call take_off_evaluation(lift(ninit), lift(nend), drag(nend), points)
+          increment = scale_factor(i)/points
+        end if
       end if
       aero_vector(i) = points
       aero_vector(i+noppoint) = increment
@@ -1342,9 +1347,14 @@ function calculate_objective_function(moment, drag, lift, alpha, viscrms, xtrt,&
         increment = 1.D-9
       end if
       if(trim(optimization_correlation(i)) == 'end') then
-        nend = i
-        call climb_evaluation(ninit, nend, drag, lift, points)
-        increment = scale_factor(i)/points 
+        if (viscrms(i) >= 1.d0) then 
+          points = 1.d0
+          increment = 1.D-9
+        else
+          nend = i 
+          call climb_evaluation(ninit, nend, drag, lift, points)
+          increment = scale_factor(i)/points
+        end if
       end if
       aero_vector(i) = points
       aero_vector(i+noppoint) = increment
@@ -1357,9 +1367,14 @@ function calculate_objective_function(moment, drag, lift, alpha, viscrms, xtrt,&
         increment = 1.D-9
       end if
       if(trim(optimization_correlation(i)) == 'end') then
-        nend = i
-        call dash_evaluation(ninit, nend, ninit1, nend1, drag, lift, points)
-        increment = scale_factor(i)/points 
+        if (viscrms(i) >= 1.d0) then 
+          points = 1.d0
+          increment = 1.D-9
+        else
+          nend = i
+          call dash_evaluation(ninit, nend, ninit1, nend1, drag, lift, points)
+          increment = scale_factor(i)/points
+        end if
       end if
       aero_vector(i) = points
       aero_vector(i+noppoint) = increment
@@ -1696,11 +1711,13 @@ function write_airfoil_optimization_progress(designvars, designcounter,        &
     op_search, use_previous_op, reynolds, mach, use_flap, y_flap, y_flap_spec, &
     ncrit_pt, connection_apply, flap_connection, flap_optimization_only,       &
     output_prefix, symmetrical, tcTE, write_bl_file, write_cp_file, x_flap,    &
-    flap_identical_op
+    flap_identical_op, optimization_type, optimization_correlation, weight,    &
+    take_off, climb, dash, turn
   
   use math_deps,       only : interp_vector 
   use parametrization, only : create_airfoil, parametrization_dvs
   use xfoil_driver,    only : run_xfoil, xfoil_geometry_info
+  use performance_evaluation
 
   double precision, dimension(:), intent(in) :: designvars
   integer, intent(in) :: designcounter
@@ -1718,9 +1735,12 @@ function write_airfoil_optimization_progress(designvars, designcounter,        &
   double precision :: actual_x_flap, actual_tcTE
   integer :: ndvs, flap_idx, flap_idi, dvcounter
  
-  character(100) :: foilfile, polarfile, text, variablesfile, textdv
+  character(100) :: foilfile, polarfile, text, variablesfile, textdv,          &
+                     performancefile
   character(8) :: maxtchar, xmaxtchar, maxcchar, xmaxcchar
-  integer :: foilunit, polarunit, variablesunit
+  integer :: foilunit, polarunit, variablesunit, performanceunit
+  integer :: ninit, nend, ninit1, nend1
+  double precision :: points
 
   nmodest = nparams_top
   nmodesb = nparams_bot
@@ -1854,6 +1874,61 @@ function write_airfoil_optimization_progress(designvars, designcounter,        &
                  file_options, lift, drag, moment, viscrms, alpha, xtrt, xtrb, &
                  ncrit_pt)
   
+  
+  do i = 1, noppoint
+    !   Extra checks for really bad designs
+
+    if (viscrms(i) >= 1.d0) then
+      lift(i) = -0.1d0
+      drag(i) = 1000.d0
+      moment(i) = -10.d0
+    end if  
+  
+    if (trim(optimization_type(i)) == 'take-off') then
+       
+      if(trim(optimization_correlation(i)) == 'init')then
+        ninit = i
+      end if
+      if(trim(optimization_correlation(i)) == 'end') then
+        nend = i
+        call take_off_evaluation(lift(ninit), lift(nend), drag(nend), points)
+      end if
+    elseif (trim(optimization_type(i)) == 'climb') then
+      
+      if(trim(optimization_correlation(i)) == 'init')then
+        ninit = i
+      end if
+      if(trim(optimization_correlation(i)) == 'end') then
+        nend = i
+        call climb_evaluation(ninit, nend, drag, lift, points)
+      end if
+    elseif (trim(optimization_type(i)) == 'dash') then
+         
+      if(trim(optimization_correlation(i)) == 'init')then
+        ninit = i
+      end if
+      if(trim(optimization_correlation(i)) == 'end') then
+        nend = i
+        call dash_evaluation(ninit, nend, ninit1, nend1, drag, lift, points)
+      end if
+    elseif (trim(optimization_type(i)) == 'turn') then
+      
+      if(trim(optimization_correlation(i)) == 'init')then
+        ninit1 = i
+      end if
+      if(trim(optimization_correlation(i)) == 'end') then
+        nend1 = i 
+      end if
+    else
+
+      write(*,*)
+      write(*,*) "Error: requested optimization_type not recognized."
+      stop
+
+    end if
+
+  end do
+  
   ! Set file saving options to false
   file_options%polar = .false.
   file_options%cp = .false.
@@ -1879,10 +1954,12 @@ function write_airfoil_optimization_progress(designvars, designcounter,        &
     foilfile = trim(output_prefix)//'_design_coordinates.dat'
     polarfile = trim(output_prefix)//'_design_polars.dat'
     variablesfile = trim(output_prefix)//'_design_aifoil_variables.dat'
+    performancefile = trim(output_prefix)//'_performance.dat'
 
     foilunit = 13
     !polarunit = 14
     variablesunit = 15
+    performanceunit = 16
 
   ! Open files and write headers, if necessary
 
@@ -1908,6 +1985,28 @@ function write_airfoil_optimization_progress(designvars, designcounter,        &
   !    write(polarunit,'(A)') 'variables="alpha" "cl" "cd" "cm" "xtrt" "xtrb"  &
   !    "flap deflexion" "flap hinge position"'
   !    write(polarunit,'(A)') 'zone t="Seed airfoil polar"'
+      
+  !   Header for performance file
+
+      write(*,*) "  Writing performance for seed airfoil to file "//           &
+                 trim(performancefile)//" ..."
+      open(unit=performanceunit, file=performancefile, status='replace')
+      write(performanceunit,'(A)') '"Aircraft Performance"'
+      write(performanceunit,'(A)') '    Take-off                            '//&
+          '                                               |     Climb       '//&
+          '                                                                 '//&
+          '     |    Dash'   
+      write(performanceunit,'(A)') '     CL_max      CL_run      CD_run     '//&
+          ' V_to        Weight     payload      points    |     RC_max     '// &
+          'V_climb     Cl_climb     D_climb     T_climb     t_acel     '//     &
+          'points     |     V_max      t_acel_d  dist_acel_d   V_turn      '// &
+          't_acel_t  dist_acel_t turn_radius     dist         points'
+      write(performanceunit,'(A)') '                                        '//&
+          '[m/s]         [N]         [N]                  |     [m/s]       '//&
+          '[m/s]                     [N]         [N]         [s]            '//&
+          '     |     [m/s]         [s]        [m]        [m/s]         [s] '//&
+          '       [m]         [m]         [m]' 
+      write(performanceunit,'(A)') 'zone t="Seed airfoil Performance"'    
 
     else
 
@@ -1934,6 +2033,13 @@ function write_airfoil_optimization_progress(designvars, designcounter,        &
       !open(unit=polarunit, file=polarfile, status='old', position='append',   &
       !     err=901)
       !write(polarunit,'(A)') 'zone t="Polars", SOLUTIONTIME='//trim(text)
+      
+      ! Open performance file and write zone header
+      write(*,*) "  Writing performance for design number "//trim(text)//      &
+                 " to file "//trim(performancefile)//" ..."
+      open(unit=performanceunit, file=performancefile, status='old',           &
+           position='append', err=902)
+      write(performanceunit,'(A)') 'zone t="Performance", SOLUTIONTIME='//trim(text)
 
     end if
 
@@ -1950,11 +2056,25 @@ function write_airfoil_optimization_progress(designvars, designcounter,        &
   !                                 xtrt(i), xtrb(i), actual_flap_degrees(i),  &
   !                                 actual_x_flap
   !  end do
+    
+  ! Write performance to file
+    
+   write(performanceunit, 1100) take_off%CL_max, take_off%CL_run,              &
+     take_off%CD_run, take_off%V_to, weight, (weight - take_off%weight_empty), &
+     take_off%points,' |', climb%RC_max, climb%V, climb%Cl, climb%D, climb%T,  &
+     climb%t_acel, climb%points, ' |', dash%V_max, dash%t_acel_d,              &
+     dash%dist_acel_d, turn%V_turn, turn%t_acel_t, turn%dist_acel_t,           &
+     turn%turn_radius, dash%dist, dash%points
+                           
 
+    1100 format(F12.6,F12.6,F12.6,F12.6,F12.6,F12.6,F14.6,A,F12.6,F12.6,F12.6,  &
+                F12.6,F12.6,F12.6,F14.6,A,F12.6,F12.6,F12.6,F12.6,F12.6,F12.6, &
+                F12.6,F14.6,F14.6)
   ! Close output files
 
     close(foilunit)
     !close(polarunit)
+    close(performanceunit)
 
     open(unit=variablesunit, file=variablesfile, status='replace')
 
@@ -2000,6 +2120,13 @@ function write_airfoil_optimization_progress(designvars, designcounter,        &
   !901 write(*,*) "Warning: unable to open "//trim(polarfile)//". Skipping ..."
   !  write_airfoil_optimization_progress = 2
   !  return
+    
+  ! Warning if there was an error opening design_coordinates file
+
+902 write(*,*) "Warning: unable to open "//trim(performancefile)//             &
+               ". Skipping ..."
+    write_airfoil_optimization_progress = 3
+    return
   
   end if
   

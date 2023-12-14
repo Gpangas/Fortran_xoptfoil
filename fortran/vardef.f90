@@ -77,6 +77,7 @@ module vardef
   type take_off_type
       
     double precision :: h, A_1, miu, S_g, weight_empty, weight_payload_ref 
+    double precision :: CL_max, CL_run, CD_run, V_to, V_run, points
     
   end type take_off_type
   
@@ -85,6 +86,7 @@ module vardef
     logical :: acel
     double precision :: time, h, dh, V_0
     double precision, dimension(5) :: points_coeff
+    double precision :: RC_max, V, Cl, D, T, t_acel, points
     
   end type climb_type
   
@@ -92,13 +94,15 @@ module vardef
     
     logical :: acel
     double precision :: time, h, dist_ref, V_0, t_ex
+    double precision :: V_max, t_acel_d, dist_acel_d, dist, points
     
   end type dash_type
   
   type turn_type
     
     logical :: activation, acel
-    double precision :: h, n, dash_leg 
+    double precision :: h, n, dash_leg
+    double precision :: V_turn, t_acel_t, dist_acel_t, turn_radius
     
   end type turn_type
   
@@ -195,7 +199,7 @@ module vardef
   type(dash_type) :: dash
   type(turn_type) :: turn
   
-  double precision :: weight
+  double precision :: weight, weight_i
   double precision :: A_w, e_w, S_w, S_expose
   double precision, dimension(3) :: thrust_coeff
   double precision :: height, width
