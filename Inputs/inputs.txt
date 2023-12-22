@@ -7,7 +7,7 @@
   global_search = 'particle_swarm'
                            !'particle_swarm' or 'genetic_algorithm'
   local_search = 'simplex' !'simplex' is currently the only option
-  seed_airfoil = 'naca'
+  seed_airfoil = 'from_file'
                            !Either 'from_file' or 'naca' or 'from_variables'
   airfoil_file = 'S9000.dat'
                            !File name for reading seed airfoil (only if
@@ -36,8 +36,8 @@
                            !     Rle of thickness curve
                            !     Gamma_le, Alpha_te, Beta_te
                            !     Zte = 0, dZte depends on TE type
-  nparameters_top = 6      !Number of parameters on the top surface
-  nparameters_bot = 6      !Number of parameters on the bot surface
+  nparameters_top = 5      !Number of parameters on the top surface
+  nparameters_bot = 5      !Number of parameters on the bot surface
   flap_optimization_only = .false.
                            ! Whether to opmitize airfoil and flap or flap only
   abs_initial_perturb = 0.001	!Absolute magnitude of initial airfoil perturbation				     
@@ -50,7 +50,7 @@
   kulfan_bussoletti_LEM =.false. ! A adicional parameter to improve the leading
                          ! edge accuracy
   b_spline_degree = 3      !Degree of B Spline
-  b_spline_xtype = 1       !Type of B Spline method, 1 if x is fixed, 2 if free
+  b_spline_xtype = 2       !Type of B Spline method, 1 if x is fixed, 2 if free
   b_spline_distribution = 1
                            !If x is fixed, this is the x distribution
                            !If x is free, this is the initial x distribution
@@ -263,7 +263,7 @@
   op_point_start(11)=008.000
   op_point_end(11)=017.000
   op_point_step(11)=000.500
-  reynolds(11)=2.68E+05
+  reynolds(11)=2.34E+05
   mach(11)=0.02
   flap_selection(11)='identical'
   flap_identical_op(11)=7
@@ -274,11 +274,11 @@
   op_mode(12)='spec-cl'
   optimization_type(12)='dash'
   optimization_correlation(12) = 'mid'
-  op_point(12)=0.4
+  op_point(12)=0.35
   op_point_start(12)=008.000
   op_point_end(12)=017.000
   op_point_step(12)=000.500
-  reynolds(12)=2.99E+05
+  reynolds(12)=2.80E+05
   mach(12)=0.02
   flap_selection(12)='identical'
   flap_identical_op(12)=7
@@ -289,11 +289,11 @@
   op_mode(13)='spec-cl'
   optimization_type(13)='dash'
   optimization_correlation(13) = 'mid'
-  op_point(13)=0.3
+  op_point(13)=0.25
   op_point_start(13)=008.000
   op_point_end(13)=017.000
   op_point_step(13)=000.500
-  reynolds(13)=3.45E+05
+  reynolds(13)=3.31E+05
   mach(13)=0.02
   flap_selection(13)='identical'
   flap_identical_op(13)=7
@@ -304,11 +304,11 @@
   op_mode(14)='spec-cl'
   optimization_type(14)='dash'
   optimization_correlation(14) = 'end'
-  op_point(14)=0.20
+  op_point(14)=0.15
   op_point_start(14)=008.000
   op_point_end(14)=017.000
   op_point_step(14)=000.500
-  reynolds(14)=4.23E+05
+  reynolds(14)=4.27E+05
   mach(14)=0.02
   flap_selection(14)='identical'
   flap_identical_op(14)=7
@@ -323,7 +323,7 @@
 ! Specification of constraints on the optimization.  These are implemented by
 ! adding penalties to the objective function value when violated.
 
-  min_thickness = 0.1     	 !Lowest allowable value of airfoil max
+  min_thickness = 0.08     	 !Lowest allowable value of airfoil max
                                  !  thickness/chord (usually for structural concerns)
   max_thickness = 1000.0         !Largest allowable value of airfoil max
                             	 !thickness/chord
@@ -341,7 +341,7 @@
   drag_check_tol = 0.2     	 !Drag tolerance before checking at a perturb point
   check_curvature = .true.
                            	 !Whether to check for curvature reversals
-  max_curv_reverse_top = 3 	 !Max number of allowed curv. reversals top surface
+  max_curv_reverse_top = 4 	 !Max number of allowed curv. reversals top surface
   max_curv_reverse_bot = 4 	 !Max number of allowed curv. reversals bot surface
   curv_threshold = 0.10    	 !Curvature threshhold for detecting reversals
   symmetrical = .false.    	 !Whether to only generate symmetrical airfoils
@@ -663,10 +663,9 @@
  &turn_data
         
   activation_turn = .true.
-  acel_to_turn = .true.
   h_turn = 574 
   n_turn = 2
-  dash_leg = 200
+  dash_leg = 150
 
 /
 
