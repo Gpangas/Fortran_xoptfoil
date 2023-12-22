@@ -143,7 +143,7 @@ function aero_objective_function(designvars, step, include_penalty)
       write(*,*) "Nan in designvars"
     end if
   end do
-  
+    
   ! Compute penalty limit epsexit
   
   epsexit_1 = penalty_limit_initial
@@ -171,6 +171,7 @@ function aero_objective_function(designvars, step, include_penalty)
   if (present(include_penalty)) then
     if (.not. include_penalty) penalize = .false.
   end if
+  
 
   ! Set modes for top and bottom surfaces
 
@@ -181,7 +182,6 @@ function aero_objective_function(designvars, step, include_penalty)
   dvtbnd2 = ndvs_top
   dvbbnd1 = dvtbnd2 + 1
   dvbbnd2 = ndvs_top + ndvs_bot
-
 
   ! Overwrite lower DVs for symmetrical airfoils (they are not used)
 
@@ -203,6 +203,7 @@ function aero_objective_function(designvars, step, include_penalty)
   
   penaltyvaltotal = 0.d0
   penaltyval = 0.d0
+  
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   !! Check TE gap(1), flap angle(2) and hinge bounds(3)
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -320,7 +321,6 @@ function aero_objective_function(designvars, step, include_penalty)
   end if
   
 ! Analyze airfoil at requested operating conditions with Xfoil
-
   call run_xfoil(curr_foil, xfoil_geom_options, op_point(1:noppoint),          &
                  op_mode(1:noppoint), op_search, use_previous_op(1:noppoint),  &
                  reynolds(1:noppoint),                                         &
@@ -332,7 +332,6 @@ function aero_objective_function(designvars, step, include_penalty)
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   ! XFOIL consistency check
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
   call run_consistency_check(actual_flap_degrees, actual_x_flap, lift, drag,   &
     moment, viscrms, xtrt, xtrb, ncheckpt, checkop)
 
@@ -1320,11 +1319,10 @@ function calculate_objective_function(moment, drag, lift, alpha, viscrms, xtrt,&
       aero_vector(i+noppoint) = increment
       aero_vector(i+2*noppoint) = (1.d0 - increment)*100.d0
     elseif (trim(optimization_type(i)) == 'take-off') then
-       
+      points = 1.d0
+      increment = 1.D-9
       if(trim(optimization_correlation(i)) == 'init')then
         ninit = i
-        points = 1.d0
-        increment = 1.D-9
       end if
       if(trim(optimization_correlation(i)) == 'end') then
         if (viscrms(i) >= 1.d0) then
@@ -1341,10 +1339,10 @@ function calculate_objective_function(moment, drag, lift, alpha, viscrms, xtrt,&
       aero_vector(i+2*noppoint) = (1.d0 - increment)*100.d0
     elseif (trim(optimization_type(i)) == 'climb') then
       
+      points = 1.d0
+      increment = 1.D-9  
       if(trim(optimization_correlation(i)) == 'init')then
         ninit = i
-        points = 1.d0
-        increment = 1.D-9
       end if
       if(trim(optimization_correlation(i)) == 'end') then
         if (viscrms(i) >= 1.d0) then 
@@ -1360,11 +1358,11 @@ function calculate_objective_function(moment, drag, lift, alpha, viscrms, xtrt,&
       aero_vector(i+noppoint) = increment
       aero_vector(i+2*noppoint) = (1.d0 - increment)*100.d0
     elseif (trim(optimization_type(i)) == 'dash') then
-         
+      
+      points = 1.d0
+      increment = 1.D-9  
       if(trim(optimization_correlation(i)) == 'init')then
         ninit = i
-        points = 1.d0
-        increment = 1.D-9
       end if
       if(trim(optimization_correlation(i)) == 'end') then
         if (viscrms(i) >= 1.d0) then 
@@ -1405,7 +1403,7 @@ function calculate_objective_function(moment, drag, lift, alpha, viscrms, xtrt,&
       weighting(i)*increment
 
   end do
-
+  
   aero_vector(1+3*noppoint) = calculate_objective_function
   
   end function calculate_objective_function
@@ -1877,12 +1875,6 @@ function write_airfoil_optimization_progress(designvars, designcounter,        &
   
   do i = 1, noppoint
     !   Extra checks for really bad designs
-
-    if (viscrms(i) >= 1.d0) then
-      lift(i) = -0.1d0
-      drag(i) = 1000.d0
-      moment(i) = -10.d0
-    end if  
   
     if (trim(optimization_type(i)) == 'take-off') then
        
@@ -1926,7 +1918,6 @@ function write_airfoil_optimization_progress(designvars, designcounter,        &
       stop
 
     end if
-
   end do
   
   ! Set file saving options to false
@@ -1995,17 +1986,18 @@ function write_airfoil_optimization_progress(designvars, designcounter,        &
       write(performanceunit,'(A)') '    Take-off                            '//&
           '                                               |     Climb       '//&
           '                                                                 '//&
-          '     |    Dash'   
+          '     |     Dash                                                  '//&
+          '                              |     Total'   
       write(performanceunit,'(A)') '     CL_max      CL_run      CD_run     '//&
-          ' V_to        Weight     payload      points    |     RC_max     '// &
-          'V_climb     Cl_climb     D_climb     T_climb     t_acel     '//     &
-          'points     |     V_max      t_acel_d  dist_acel_d   V_turn      '// &
-          't_acel_t  dist_acel_t turn_radius     dist         points'
+          ' V_to        Weight     payload      points    |     RC_max     V'//&
+          '_climb     Cl_climb     D_climb     T_climb     t_acel     points'//&
+          '     |     V_max     t_acel_d   dist_acel_d   V_turn    turn_radi'//&
+          'us     dist         points    |     points'                                  
       write(performanceunit,'(A)') '                                        '//&
-          '[m/s]         [N]         [N]                  |     [m/s]       '//&
-          '[m/s]                     [N]         [N]         [s]            '//&
-          '     |     [m/s]         [s]        [m]        [m/s]         [s] '//&
-          '       [m]         [m]         [m]' 
+          ' [m/s]        [N]         [N]                  |     [m/s]       '//&
+          '[m/s]                     [N]         [N]        [s]             '//&
+          '     |     [m/s]        [s]        [m]         [m/s]        [m]  '//&
+          '       [m]                    |'
       write(performanceunit,'(A)') 'zone t="Seed airfoil Performance"'    
 
     else
@@ -2063,13 +2055,13 @@ function write_airfoil_optimization_progress(designvars, designcounter,        &
      take_off%CD_run, take_off%V_to, weight, (weight - take_off%weight_empty), &
      take_off%points,' |', climb%RC_max, climb%V, climb%Cl, climb%D, climb%T,  &
      climb%t_acel, climb%points, ' |', dash%V_max, dash%t_acel_d,              &
-     dash%dist_acel_d, turn%V_turn, turn%t_acel_t, turn%dist_acel_t,           &
-     turn%turn_radius, dash%dist, dash%points
+     dash%dist_acel_d, turn%V, turn%radius, dash%dist, dash%points,' |',       &
+     (take_off%points + climb%points + dash%points)/3
                            
 
     1100 format(F12.6,F12.6,F12.6,F12.6,F12.6,F12.6,F14.6,A,F12.6,F12.6,F12.6,  &
-                F12.6,F12.6,F12.6,F14.6,A,F12.6,F12.6,F12.6,F12.6,F12.6,F12.6, &
-                F12.6,F14.6,F14.6)
+                F12.6,F12.6,F12.6,F14.6,A,F12.6,F12.6,F12.6,F12.6,F12.6,F14.6, &
+                F14.6,A,F14.6)
   ! Close output files
 
     close(foilunit)

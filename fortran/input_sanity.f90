@@ -608,43 +608,25 @@ subroutine check_seed()
       checkval = 1.d0/lift(i)
     elseif (trim(optimization_type(i)) == 'take-off') then
        
-      if(trim(optimization_correlation(i)) == 'init')then
-        ninit = i
-        checkval = 1.D-9
-      end if
+      checkval = 1.D-9
       if(trim(optimization_correlation(i)) == 'end') then
-        nend = i
         checkval = 1.d0/1000 
       end if
     elseif (trim(optimization_type(i)) == 'climb') then
         
       checkval = 1.D-9 
-      if(trim(optimization_correlation(i)) == 'init')then
-        ninit = i
-      end if
       if(trim(optimization_correlation(i)) == 'end') then
-        nend = i
         checkval = 1.d0/1000 
       end if
     elseif (trim(optimization_type(i)) == 'dash') then
         
       checkval = 1.D-9 
-      if(trim(optimization_correlation(i)) == 'init')then
-        ninit = i
-      end if
       if(trim(optimization_correlation(i)) == 'end') then
-        nend = i
         checkval = 1.d0/1000 
       end if
     elseif (trim(optimization_type(i)) == 'turn') then
         
       checkval = 1.D-9 
-      if(trim(optimization_correlation(i)) == 'init')then
-        ninit1 = i
-      end if
-      if(trim(optimization_correlation(i)) == 'end') then
-        nend1 = i 
-      end if
     else
       write(*,*)
       write(*,*) "Error: requested optimization_type for operating point "//   &

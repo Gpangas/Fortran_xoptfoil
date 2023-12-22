@@ -144,7 +144,7 @@ subroutine climb_evaluation(oppoint_init, oppoint_end, drag, lift, points)
     points = 1000
   end if
   
-  if(t_climb .lt. climb%time) dash%t_ex = t_climb - climb%time
+  if(t_climb .lt. climb%time) dash%t_ex = climb%time- t_climb
   
   dash%V_0 = V(i_RC_max)
   
@@ -180,8 +180,7 @@ subroutine dash_evaluation(oppoint_init_d, oppoint_end_d, oppoint_init_t,      &
   double precision, allocatable :: T_d(:), D_d(:), V_d(:)
   double precision, allocatable :: T_t(:), D_t(:), V_t(:)
   double precision :: V_max, t_acel_d, t_acel_i, dist, dist_acel_d
-  double precision :: V_turn, t_acel_t_to_d, dist_acel_t_to_d
-  double precision :: turn_radius, turn_perimeter
+  double precision :: V_turn, turn_radius, turn_perimeter
   
   n_oppoint_dash = oppoint_end_d - oppoint_init_d + 1
   n_oppoint_turn = oppoint_end_t - oppoint_init_t + 1
@@ -199,19 +198,19 @@ subroutine dash_evaluation(oppoint_init_d, oppoint_end_d, oppoint_init_t,      &
   t_acel_d = 0.d0
   dist_acel_d = 0.d0
   if((T_d(1)-D_d(1)) .le. 0)then
-    points = 0
+    points = 0.d0
     return
   !criar msg de erro para Cl definido demasiado baixo
   else
     V_max = V_d(1)
-    t_acel_d = (V_d(1) - dash%V_0)/((T_d(1)-D_d(1)))
+    t_acel_d = (V_d(1) - dash%V_0)/((T_d(1)-D_d(1))*(g/weight))
     if(t_acel_d .gt. dash%t_ex) dist_acel_d = (V_d(1) + dash%V_0)/2 * t_acel_d
   end if
   
   acel_to_dash: do i = 2, n_oppoint_dash
     if((T_d(i)-D_d(i)) .gt. 0)then
       V_max = V_d(i)
-      t_acel_i = (V_d(i) - V_d(i-1))/((T_d(i)-D_d(i))+(T_d(i-1)-D_d(i-1)))/2
+      t_acel_i = (V_d(i) - V_d(i-1))/(((T_d(i)-D_d(i))+(T_d(i-1)-D_d(i-1)))/2*(g/weight))
       t_acel_d = t_acel_d + t_acel_i
       if(t_acel_d .gt. dash%t_ex)then
         if(dash%t_ex .gt. (t_acel_d-t_acel_i))then
@@ -224,7 +223,7 @@ subroutine dash_evaluation(oppoint_init_d, oppoint_end_d, oppoint_init_t,      &
     else
       V_max = V_d(i)-(T_d(i)-D_d(i))/(((T_d(i)-D_d(i))-(T_d(i-1)-D_d(i-1)))/   &
               (V_d(i)-V_d(i-1)))
-      t_acel_i = (V_max-V_d(i-1))/(T_d(i-1)-D_d(i-1))
+      t_acel_i = (V_max-V_d(i-1))/((T_d(i-1)-D_d(i-1))/2*(g/weight))
       t_acel_d = t_acel_d + t_acel_i
       if(t_acel_d .gt. dash%t_ex)then
         if(dash%t_ex .gt. (t_acel_d-t_acel_i))then
@@ -246,7 +245,7 @@ subroutine dash_evaluation(oppoint_init_d, oppoint_end_d, oppoint_init_t,      &
     
     !Check if Turn velocity is in between Cl range 
     if((T_t(1)-D_t(1)) .lt. 0.d0)then
-      points = 0
+      points = 0.d0
       return 
     end if 
     
@@ -260,46 +259,29 @@ subroutine dash_evaluation(oppoint_init_d, oppoint_end_d, oppoint_init_t,      &
         exit V_turn_calc
       end if
     end do V_turn_calc
-    
-    if(turn%acel)then
-      t_acel_t_to_d = 0.d0
-      dist_acel_t_to_d = 0.d0
-      !Calculate time and distance of acceleration from turn to dash 
-      acel_turn_to_dash: do i = 1, n_oppoint_dash
-        if(V_d(i) .ge. V_turn)then
-          if(V_d(i) .le. V_max)then
-            if(V_d(i-1) .lt. V_turn)then
-              t_acel_t_to_d = (V_d(i) - V_turn)/(T_d(i)-D_d(i))
-              dist_acel_t_to_d = (V_d(i) + V_turn)/2 * t_acel_t_to_d
-            else
-              t_acel_i = (V_d(i) - V_d(i-1))/(((T_d(i)-D_d(i))+(T_d(i-1)-      &
-                         D_d(i-1)))/2)
-              t_acel_t_to_d = t_acel_t_to_d + t_acel_i
-              dist_acel_t_to_d = dist_acel_t_to_d + (V_d(i) + V_d(i-1))/2 *    &
-                                 t_acel_i
-            end if
-          else
-            t_acel_i = (V_max-V_d(i-1))/(T_d(i-1)-D_d(i-1))
-            t_acel_t_to_d = t_acel_t_to_d + t_acel_i
-            dist_acel_t_to_d = dist_acel_t_to_d + (V_max + V_d(i-1))/2 *t_acel_i
-            exit acel_turn_to_dash  
-          end if    
-        end if
-      end do acel_turn_to_dash
-      turn_radius = V_turn**2/(g*SQRT(turn%n**2-1))
-      turn_perimeter = pi*turn_radius
-      dist = ((turn%dash_leg + turn_perimeter)/((turn%dash_leg -               &
-             dist_acel_t_to_d)/V_max + t_acel_t_to_d + turn_perimeter/V_turn))*&
-             (dash%time - t_acel_d) + dist_acel_d
+
+    turn_radius = V_turn**2/(g*SQRT(turn%n**2-1))
+    turn_perimeter = 2*pi*turn_radius
+    if(dash%acel)then
+      if(t_acel_d .le. dash%t_ex)then
+        dist = (turn%dash_leg + turn_perimeter)/(turn%dash_leg/V_max +         &
+               turn_perimeter/V_turn) * (dash%time) 
+      else
+        dist = (turn%dash_leg + turn_perimeter)/(turn%dash_leg/V_max +         &
+              turn_perimeter/V_turn) * (dash%time - (t_acel_d-dash%t_ex))      &
+              + dist_acel_d  
+      end if
     else
-      turn_radius = V_turn**2/(g*SQRT(turn%n**2-1))
-      turn_perimeter = pi*turn_radius
       dist = (turn%dash_leg + turn_perimeter)/(turn%dash_leg/V_max +           &
               turn_perimeter/V_turn) * dash%time
     end if
   else
     if(dash%acel)then
-      dist = dist_acel_d + (dash%time - t_acel_d)*V_max
+      if(t_acel_d .le. dash%t_ex)then
+        dist = dash%time*V_max 
+      else
+        dist = dist_acel_d + V_max*(dash%time - (t_acel_d-dash%t_ex))
+      end if  
     else
       dist = dash%time*V_max
     end if
@@ -307,15 +289,17 @@ subroutine dash_evaluation(oppoint_init_d, oppoint_end_d, oppoint_init_t,      &
   
   points = dist/dash%dist_ref*1000
   
+  if(points .lt. 0.d0)then
+     points = 0.d0  
+  end if
+  
   deallocate(T_d, D_d, V_d, T_t, D_t, V_t)
   
   dash%V_max = V_max
   dash%t_acel_d = t_acel_d
   dash%dist_acel_d = dist_acel_d
-  turn%V_turn = V_turn
-  turn%t_acel_t = t_acel_t_to_d
-  turn%dist_acel_t = dist_acel_t_to_d
-  turn%turn_radius = turn_radius
+  turn%V = V_turn
+  turn%radius = turn_radius
   dash%dist = dist
   dash%points = points
   

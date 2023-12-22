@@ -100,9 +100,9 @@ module vardef
   
   type turn_type
     
-    logical :: activation, acel
+    logical :: activation
     double precision :: h, n, dash_leg
-    double precision :: V_turn, t_acel_t, dist_acel_t, turn_radius
+    double precision :: V, radius
     
   end type turn_type
   
@@ -215,7 +215,7 @@ module vardef
   double precision :: time_climb, h_climb, dh, V_0_climb
   double precision, dimension(5) :: points_coeff
   double precision :: time_dash, h_dash, V_0_dash, time_extra, dist_ref_dash
-  logical :: activation_turn, acel_to_turn
+  logical :: activation_turn
   double precision :: h_turn, n_turn, dash_leg
     
 !$omp threadprivate(curr_foil)

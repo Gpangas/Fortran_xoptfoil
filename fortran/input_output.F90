@@ -143,7 +143,7 @@ subroutine read_inputs(input_file, search_type, global_search, local_search,   &
                         points_coeff
   namelist /dash_data/ acel_to_dash, time_dash, h_dash, V_0_dash, time_extra,  &
                        dist_ref_dash
-  namelist /turn_data/ activation_turn, acel_to_turn, h_turn, n_turn, dash_leg
+  namelist /turn_data/ activation_turn, h_turn, n_turn, dash_leg
 
   choice = 'n'
 
@@ -326,7 +326,6 @@ subroutine read_inputs(input_file, search_type, global_search, local_search,   &
   
 ! Set defaults for turn_data namelist options
   activation_turn = .false.
-  acel_to_turn = .false.
   h_turn = 300
   n_turn = 2
   dash_leg = 300
@@ -405,13 +404,19 @@ subroutine read_inputs(input_file, search_type, global_search, local_search,   &
   dash%dist_ref = dist_ref_dash
   dash%V_0 = V_0_dash
   dash%t_ex = time_extra
+  dash%V_max = 0
+  dash%t_acel_d = 0 
+  dash%dist_acel_d = 0 
+  dash%dist = 0
+  dash%points = 0
   
 !turn_data in derived type 
   turn%activation = activation_turn
-  turn%acel = acel_to_turn
   turn%h = h_turn
   turn%n = n_turn
   turn%dash_leg = dash_leg
+  turn%V= 0
+  turn%radius = 0
   
 ! use_previous_op set all op options to previous if true
   
@@ -1065,7 +1070,6 @@ subroutine read_inputs(input_file, search_type, global_search, local_search,   &
    
   write(*,'(A)') "&Turn_data"
   write(*,*) " activation = ", turn%activation
-  write(*,*) " acel = ", turn%acel
   write(*,*) " h = ", turn%h
   write(*,*) " n = ", turn%n
   write(*,*) " dash_leg = ", turn%dash_leg
@@ -1415,7 +1419,6 @@ subroutine read_inputs(input_file, search_type, global_search, local_search,   &
    
   write(100,'(A)') "&Turn_data"
   write(100,*) " activation = ", turn%activation
-  write(100,*) " acel = ", turn%acel
   write(100,*) " h = ", turn%h
   write(100,*) " n = ", turn%n
   write(100,*) " dash_leg = ", turn%dash_leg
