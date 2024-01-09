@@ -48,7 +48,7 @@ subroutine aircraft_data_eq(Cl, Cd, n, h, V, drag_t, thurst)
                 /(fuselage%height+fuselage%width)**0.25
   
   converge = 1 
-  do while (converge > 1E-2)
+  do while (converge > 1E-5)
     alpha_i =  Cl_a/(pi*A_w*e_w)
     CL_i = Cl * cos(alpha_i)*(S_expose/S_w)
     converge = abs(Cl_a - Cl_i)
@@ -96,7 +96,7 @@ subroutine aircraft_data_take_off(Cl, Cd, n, h, V, Cl_a, Cd_t, thurst)
                 /(fuselage%height+fuselage%width)**0.25
   
   converge = 1 
-  do while (converge > 1E-2)
+  do while (converge > 1E-5)
     alpha_i =  Cl_a/(pi*A_w*e_w)
     CL_i = Cl * cos(alpha_i)*(S_expose/S_w)
     converge = abs(Cl_a - Cl_i)

@@ -55,7 +55,7 @@ subroutine take_off_evaluation(Cl_int, Cl_end, Cd_end, points)
   call aircraft_data_take_off(Cl_end, Cd_end, n, take_off%h, V_run, Cl_run,  &
                                  Cd_run, thurst)
   converge = 1
-  do while (converge > 0.1)
+  do while (converge > 1E-3)
     V_s = sqrt(abs(2*weight/(rho*Cl_max*S_w)))  
     V_to = take_off%A_1 * V_s
     V_run = V_to/sqrt(2.0_8)
