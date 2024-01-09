@@ -484,7 +484,7 @@
 ! Options for particle swarm optimization; only used for global_search =
 ! 'particle_swarm'.  PSO is used to get in the vicinity of the global optimum.
 
-  pso_pop = 30             !Particle swarm population size
+  pso_pop = 40             !Particle swarm population size
   pso_tol = 1.E-04         !Tolerance in max radius of particles before
                            !  triggering a stop condition
   pso_maxit = 700          !Max iterations before stopping
