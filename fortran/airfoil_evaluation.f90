@@ -1911,12 +1911,6 @@ function write_airfoil_optimization_progress(designvars, designcounter,        &
       if(trim(optimization_correlation(i)) == 'end') then
         nend1 = i 
       end if
-    else
-
-      write(*,*)
-      write(*,*) "Error: requested optimization_type not recognized."
-      stop
-
     end if
   end do
   
