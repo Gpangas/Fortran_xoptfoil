@@ -13,7 +13,8 @@
 !  You should have received a copy of the GNU General Public License
 !  along with XOPTFOIL.  If not, see <http://www.gnu.org/licenses/>.
 
-!  Copyright (C) 2017-2019 Daniel Prosser, 2020-2021 Ricardo Palmeira
+!  Copyright (C) 2017-2019 Daniel Prosser, 2020-2021 Ricardo Palmeira,
+!  2023-2024 Guilherme Pangas
 
 module optimization_util
 
@@ -1431,7 +1432,9 @@ subroutine write_dvs(name_len, name, step, dv, objval, message_codes, messages,&
                          constrain_matrix, aero_matrix, x0, f0, xopt, fmin)
 
   use vardef, only : output_prefix, dvs_for_type, naddthickconst, noppoint,    &
-                     ndrag_constrain, nmoment_constrain, nlift_constrain
+                     ndrag_constrain, nmoment_constrain, nlift_constrain,       & 
+                     ntake_off_constrain, nclimb_constrain, ndash_constrain,   &
+                     nturn_constrain, take_off, climb, dash, turn
 
   integer, intent(in) :: name_len
   character(name_len), intent(in)  :: name
@@ -1665,13 +1668,27 @@ subroutine write_dvs(name_len, name, step, dv, objval, message_codes, messages,&
         write(iunit,'(A14)', advance='no') 'lift - '//trim(textdv)
       end do
     end if
-        if (ndrag_constrain .NE. 0) then
+    if (ndrag_constrain .NE. 0) then
       do i=1, ndrag_constrain
         write(textdv,*) i 
         textdv=adjustl(textdv)
         write(iunit,'(A14)', advance='no') 'drag - '//trim(textdv)
       end do
     end if
+    
+    if (ntake_off_constrain .NE. 0) write(iunit,'(A14)', advance='no') 'weight'  
+    if (nclimb_constrain .NE. 0) then
+      write(iunit,'(A14)', advance='no') 'RC_max'
+      write(iunit,'(A14)', advance='no') 't_accel'
+    end if
+    if (nturn_constrain .NE. 0) write(iunit,'(A14)', advance='no') 'V_turn'
+    if (ndash_constrain .NE. 0) then
+      write(iunit,'(A14)', advance='no') 'V_max'
+      write(iunit,'(A14)', advance='no') 't_accel'
+      write(iunit,'(A14)', advance='no') 'dist_accel'
+      write(iunit,'(A14)', advance='no') 'dist'
+    end if
+    
     write(iunit,'(A30)', advance='no') 'objval'
     write(iunit,'(A14)', advance='no') 'message_code'
     write(iunit,'(A)', advance='no') ' message'

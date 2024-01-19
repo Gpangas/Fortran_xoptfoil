@@ -13,9 +13,9 @@
 !  You should have received a copy of the GNU General Public License
 !  along with XOPTFOIL.  If not, see <http://www.gnu.org/licenses/>.
 
-!  Copyright (C) 2017-2019 Daniel Prosser, 2020-2021 Ricardo Palmeira
+!  Copyright (C) 2017-2019 Daniel Prosser, 2020-2021 Ricardo Palmeira,
 !  2023-2024 Guilherme Pangas
-    
+
 module input_sanity
 
   implicit none
@@ -36,7 +36,7 @@ subroutine check_seed()
                                  spline_interp_z, spline_interp_t
   use xfoil_driver,       only : run_xfoil, get_max_panel_angle
   use airfoil_evaluation, only : xfoil_options, xfoil_geom_options, file_options
-  use performance_evaluation
+  use performance_evaluation, only : calculate_performance
 
   double precision, dimension(noppoint) :: lift, drag, moment, viscrms, alpha, &
                                            xtrt, xtrb
@@ -52,10 +52,10 @@ subroutine check_seed()
   double precision :: pi, te_angle, actual_min_te_angle, max_growth_top,       &
                       max_growth_bot
   integer :: i, nptt, nptb, nreversalst, nreversalsb, nptint, flap_idi
-  integer :: ninit, nend, ninit1, nend1
   character(30) :: text, text2
   character(15) :: opt_type
   logical :: addthick_violation, side
+  double precision, dimension(3) :: points
 
   penaltyval = 0.d0
   pi = acos(-1.d0)
@@ -388,9 +388,7 @@ subroutine check_seed()
         stop
       end if
     elseif ((op_mode(i) == 'spec-cl') .and.                                    &
-            ((optimization_type(i) .eq. 'max-lift-search') .or.                &
-            ((optimization_type(i) .eq. 'take_off') .and.                      &
-            (optimization_correlation(i) .eq. 'init')))) then
+            (trim(optimization_type(i)) == 'max-lift')) then
       write(*,*) "Error: Cl is specified for operating point "//trim(text)//   &
                  ". Cannot use 'max-lift' optimization type in this case."
       write(*,*) 
@@ -514,6 +512,42 @@ subroutine check_seed()
       end if
     end if
   end do
+  
+! Analyze performance at requested operating conditions
+  
+  call calculate_performance(moment, drag, lift, alpha, viscrms, points)
+  
+  ! Check for take_off constraint
+  if(ntake_off_constrain /= 0)then
+     if (weight_min > weight) call ask_stop("Seed airfoil violates "//         &
+       "constraint.", allow_seed_penalties)
+  end if
+  
+  ! Check for climb constraint
+  if(nclimb_constrain /= 0)then
+     if (RC_min > climb%RC_max) call ask_stop("Seed airfoil violates RC_min"// &
+       " constraint.", allow_seed_penalties)
+     if (0 > climb%t_accel) call ask_stop("Seed airfoil violates t_acel >= 0"//&
+       " constraint.", allow_seed_penalties)
+  end if
+  
+  ! Check for dash constraint
+  if(ndash_constrain /= 0)then
+     if (dash_V_min > dash%V_max) call ask_stop("Seed airfoil violates "//     &
+       "dash_V_min constraint.", allow_seed_penalties)
+     if (0 > dash%t_accel) call ask_stop("Seed airfoil violates t_acel_d"//    &
+       " >= 0 constraint.", allow_seed_penalties)
+     if (0 > dash%dist_accel) call ask_stop("Seed airfoil violates "//         &
+       "dist_acel_d >= 0 constraint.", allow_seed_penalties)
+     if (0 > dash%dist) call ask_stop("Seed airfoil violates dist >= 0 "//     &
+       "constraint.", allow_seed_penalties)
+  end if
+  
+  ! Check for turn constraint
+  if(nturn_constrain /= 0)then
+     if (turn_V_min > turn%V) call ask_stop("Seed airfoil violates "//         &
+       "turn_V_min constraint.", allow_seed_penalties)
+  end if
 
 ! Evaluate objectives to establish scale factors for each point
 
@@ -607,26 +641,17 @@ subroutine check_seed()
 
       checkval = 1.d0/lift(i)
     elseif (trim(optimization_type(i)) == 'take-off') then
-       
-      checkval = 1.D-9
-      if(trim(optimization_correlation(i)) == 'end') then
-        checkval = 1.d0/1000 
-      end if
+
+      checkval = 1.d0/1000
     elseif (trim(optimization_type(i)) == 'climb') then
-        
-      checkval = 1.D-9 
-      if(trim(optimization_correlation(i)) == 'end') then
-        checkval = 1.d0/1000 
-      end if
+
+      checkval = 1.d0/1000
     elseif (trim(optimization_type(i)) == 'dash') then
-        
-      checkval = 1.D-9 
-      if(trim(optimization_correlation(i)) == 'end') then
-        checkval = 1.d0/1000 
-      end if
+
+      checkval = 1.d0/1000
     elseif (trim(optimization_type(i)) == 'turn') then
-        
-      checkval = 1.D-9 
+
+      checkval = 1.d0/1000
     else
       write(*,*)
       write(*,*) "Error: requested optimization_type for operating point "//   &

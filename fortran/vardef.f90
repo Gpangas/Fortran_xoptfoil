@@ -13,7 +13,7 @@
 !  You should have received a copy of the GNU General Public License
 !  along with XOPTFOIL.  If not, see <http://www.gnu.org/licenses/>.
 
-!  Copyright (C) 2017-2019 Daniel Prosser, 2020-2021 Ricardo Palmeira
+!  Copyright (C) 2017-2019 Daniel Prosser, 2020-2021 Ricardo Palmeira,
 !  2023-2024 Guilherme Pangas
 
 module vardef
@@ -70,31 +70,31 @@ module vardef
   type tail_type
 
     integer :: config
-    double precision, dimension(2) :: chord, t_c_ratio, max_t_x,               &     
-			     skin_roughness, surface_area
+    double precision, dimension(2) :: chord, t_c_ratio, max_t_x     
+	double precision, dimension(2) :: skin_roughness, surface_area
   end type tail_type 
   
   type take_off_type
       
     double precision :: h, A_1, miu, S_g, weight_empty, weight_payload_ref 
-    double precision :: CL_max, CL_run, CD_run, V_to, V_run, points
+    double precision :: V_to, V_run
     
   end type take_off_type
   
   type climb_type
       
-    logical :: acel
+    logical :: accel
     double precision :: time, h, dh, V_0
     double precision, dimension(5) :: points_coeff
-    double precision :: RC_max, V, Cl, D, T, t_acel, points
+    double precision :: RC_max, V, Cl, t_accel
     
   end type climb_type
   
   type dash_type
     
-    logical :: acel
+    logical :: accel
     double precision :: time, h, dist_ref, V_0, t_ex
-    double precision :: V_max, t_acel_d, dist_acel_d, dist, points
+    double precision :: V_max, t_accel, dist_accel, dist
     
   end type dash_type
   
@@ -129,11 +129,13 @@ module vardef
   integer :: int_x_flap_spec, int_tcTE_spec           ! added int_x_flap_spec
   logical :: use_flap, flap_optimization_only
   character(20) :: flap_connection, connection_apply 
-  character(15), dimension(max_op_points) :: optimization_type, optimization_correlation
+  character(15), dimension(max_op_points) :: optimization_type
   logical, dimension(max_op_points) :: use_previous_op
   integer, dimension(6) :: dvs_for_type
   integer :: nflap_optimize, nflap_identical, nmoment_constrain,               &
-             ndrag_constrain, nlift_constrain, contrain_number
+             ndrag_constrain, nlift_constrain, contrain_number,                &
+             ntake_off_constrain, nclimb_constrain, ndash_constrain,           &
+             nturn_constrain
                                      ! Number of operating points where flap 
                                      !   setting will be optimized or identical
   integer, dimension(max_op_points) :: flap_optimize_points,                   &
@@ -189,6 +191,7 @@ module vardef
   integer, parameter :: max_addthickconst = 10 ! remove limit?
   double precision, dimension(max_addthickconst) :: addthick_x, addthick_min,  &
                                                     addthick_max
+  double precision :: weight_min, RC_min, dash_V_min, turn_V_min
   character(19) :: restart_stat
   character(80) :: global_search_stat, local_search_stat
   !add aircraft data
@@ -211,7 +214,7 @@ module vardef
   double precision :: Cd_ld, add_drag
   double precision :: h_take_off, A_1, miu, S_g
   double precision :: weight_empty, weight_payload_ref
-  logical :: acel_to_climb, acel_to_dash
+  logical :: accel_to_climb, accel_to_dash
   double precision :: time_climb, h_climb, dh, V_0_climb
   double precision, dimension(5) :: points_coeff
   double precision :: time_dash, h_dash, V_0_dash, time_extra, dist_ref_dash

@@ -13,7 +13,8 @@
 !  You should have received a copy of the GNU General Public License
 !  along with XOPTFOIL.  If not, see <http://www.gnu.org/licenses/>.
 
-!  Copyright (C) 2017-2019 Daniel Prosser, 2020-2021 Ricardo Palmeira
+!  Copyright (C) 2017-2019 Daniel Prosser, 2020-2021 Ricardo Palmeira,
+!  2023-2024 Guilherme Pangas
 
 module simplex_search
 
