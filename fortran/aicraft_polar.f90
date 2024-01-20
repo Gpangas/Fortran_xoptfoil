@@ -92,7 +92,7 @@ subroutine aircraft_data_take_off(Cl, Cd, n, h, V, Cl_a, Cd_t, thurst)
   double precision :: rho, miu
   
   Cl_a = Cl
-  fuselage_d = 1.3*(fuselage%height*fuselage%width)**0.625                      &
+  fuselage_d = 1.3*(fuselage%height*fuselage%width)**0.625                     &
                 /(fuselage%height+fuselage%width)**0.25
   
   converge = 1 
@@ -214,16 +214,16 @@ subroutine air_data(h, rho, miu)
   double precision, intent(out) :: rho, miu
   
   double precision :: T, p
-  double precision, parameter :: T_0 = 228.15, lambda = -6.5E-3
+  double precision, parameter :: T_0 = 288.15, lambda = -6.5E-3
   double precision, parameter :: p_0 = 101325
   double precision, parameter :: rho_0 = 1.225
-  double precision, parameter :: miu_ref = 1.716E-5, T_ref = 273.15, C = 110.4
+  double precision, parameter :: miu_ref = 1.78E-5
   double precision, parameter :: g_0 = 9.80665, R = 287.05307
   
   T = T_0 + lambda*h
   p = p_0 * (T/T_0)**(-g_0/(lambda*R))
   rho = rho_0 * (T/T_0)**(-g_0/(lambda*R)-1)
-  miu = miu_ref * ((T_ref + C)/(T + C))*(T/T_ref)**(3/2)
+  miu = miu_ref * (T/T_0)**(3/4)
 
 end subroutine air_data
 

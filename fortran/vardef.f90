@@ -92,7 +92,7 @@ module vardef
   
   type dash_type
     
-    logical :: accel
+    logical :: accel, interval
     double precision :: time, h, dist_ref, V_0, t_ex
     double precision :: V_max, t_accel, dist_accel, dist
     
@@ -100,7 +100,7 @@ module vardef
   
   type turn_type
     
-    logical :: activation
+    logical :: activation, interval
     double precision :: h, n, dash_leg
     double precision :: V, radius
     

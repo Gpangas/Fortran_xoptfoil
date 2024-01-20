@@ -61,8 +61,6 @@ subroutine calculate_performance(moment, drag, lift, alpha, viscrms, points)
       if((i == noppoint) .or. (trim(optimization_type(i+1)) /= 'climb')) then
         nend_1 = i
         call climb_evaluation(ninit_1, nend_1, drag, lift, points(2)) 
-        if(RC_min > climb%RC_max) return
-        if(0 > climb%t_accel) return
       end if
     elseif (trim(optimization_type(i)) == 'dash') then
        
@@ -71,11 +69,6 @@ subroutine calculate_performance(moment, drag, lift, alpha, viscrms, points)
         nend_1 = i
         call dash_evaluation(ninit_1, nend_1, ninit_2, nend_2, drag, lift,     &
           points(3))
-        if(dash_V_min > dash%V_max) return
-        if(0 > dash%t_accel) return
-        if(0 > dash%dist_accel) return
-        if(0 > dash%dist) return
-        if(turn_V_min > turn%V) return
       end if
     elseif (trim(optimization_type(i)) == 'turn') then
       
@@ -116,7 +109,7 @@ subroutine take_off_evaluation(Cl_int, Cl_end, Cd_end, points)
   call aircraft_data_take_off(Cl_end, Cd_end, n, take_off%h, take_off%V_run,   &
       Cl_run, Cd_run, thurst)
   converge = 1
-  do while (converge > 1E-3)
+  do while (converge > 1E-5)
     V_s = sqrt(abs(2*weight/(rho*Cl_max*S_w)))  
     take_off%V_to = take_off%A_1 * V_s
     take_off%V_run = take_off%V_to/sqrt(2.0_8)
@@ -151,6 +144,7 @@ subroutine climb_evaluation(oppoint_init, oppoint_end, drag, lift, points)
   double precision, parameter :: n = 1, g = 9.80665
   double precision, allocatable :: T(:), D(:), V(:), RC(:)
   double precision :: h, t_climb
+  
   n_oppoint_climb = oppoint_end - oppoint_init + 1
   
   allocate(T(n_oppoint_climb), D(n_oppoint_climb), V(n_oppoint_climb),           &
@@ -177,12 +171,8 @@ subroutine climb_evaluation(oppoint_init, oppoint_end, drag, lift, points)
     climb%t_accel = (V(1) - climb%V_0)/((T(1)-D(1))*(g/weight))
     if(i_RC_max .NE. 1)then
       accel_to_climb: do i=2, n_oppoint_climb
-        climb%t_accel = climb%t_accel + (V(i)-V(i-1)) / (((T(i)-D(i))+(T(i-1)-D(i-1)))/2*    &
-                  (g/weight))
-        if(climb%t_accel .GT. climb%time)then
-          points = 0
-          return
-        end if
+        climb%t_accel = climb%t_accel + (V(i)-V(i-1)) / (((T(i)-D(i))+(T(i-1)- &
+          D(i-1)))/2*(g/weight))
         if(i_RC_max .EQ. i) exit accel_to_climb
       end do accel_to_climb
     end if
@@ -244,10 +234,10 @@ subroutine dash_evaluation(oppoint_init_d, oppoint_end_d, oppoint_init_t,      &
   !Calculate Max velocity and acelleration time and distance
   dash%t_accel = 0.d0
   dash%dist_accel = 0.d0
+  dash%interval = .true.
   if((T_d(1)-D_d(1)) .le. 0)then
-    points = 0.d0
+    dash%interval = .false.
     return
-  !criar msg de erro para Cl definido demasiado baixo
   else
     dash%V_max = V_d(1)
     dash%t_accel = (V_d(1) - dash%V_0)/((T_d(1)-D_d(1))*(g/weight))
@@ -294,9 +284,10 @@ subroutine dash_evaluation(oppoint_init_d, oppoint_end_d, oppoint_init_t,      &
                             turn%n, turn%h, V_t(i), D_t(i), T_t(i))  
     end do
     
+    turn%interval = .true.
     !Check if Turn velocity is in between Cl range 
     if((T_t(1)-D_t(1)) .lt. 0.d0)then
-      points = 0.d0
+      turn%interval = .false.
       return 
     end if 
     
@@ -341,10 +332,6 @@ subroutine dash_evaluation(oppoint_init_d, oppoint_end_d, oppoint_init_t,      &
   
   points = dash%dist/dash%dist_ref*1000
   
-  if(points .lt. 0.d0)then
-     points = 0.d0  
-  end if
-  
   deallocate(T_d, D_d, V_d, T_t, D_t, V_t)
 
   
@@ -362,7 +349,7 @@ subroutine rho_calculation(h, rho)
   double precision, intent(out) :: rho
   
   double precision :: T, p
-  double precision, parameter :: T_0 = 228.15, lambda = -6.5E-3
+  double precision, parameter :: T_0 = 288.15, lambda = -6.5E-3
   double precision, parameter :: p_0 = 101325
   double precision, parameter :: rho_0 = 1.225
   double precision, parameter :: g_0 = 9.80665, R = 287.05307

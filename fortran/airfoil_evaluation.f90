@@ -1243,8 +1243,40 @@ function performance_penalty_function(constrains_vector, penalize, epsexit)
     penaltyval = 0.d0     
   end if
   
-  ! Add penalty for V_turn to low
+  if(ndash_constrain /= 0)then
+    ! Add penalty for dash speed of Cl interval
+    if(dash%interval .eqv. .false.) penaltyval = penaltyval + epsexit + 1   
+    
+    if ((penaltyval > epsexit) .and. penalize ) then
+      performance_penalty_function%value = penaltyval*1.0D+06
+      performance_penalty_function%message_code = 23
+      performance_penalty_function%message = ' failed, dash speed of'//       & 
+        ' Cl interval'
+      performance_penalty_function%constrains_data = constrains_vector
+      return
+    end if  
+    
+    penaltyvaltotal = penaltyvaltotal + penaltyval
+    penaltyval = 0.d0  
+  end if
+
   if(nturn_constrain /= 0)then
+    ! Add penalty for dash speed of Cl interval
+    if(turn%interval .eqv. .false.) penaltyval = penaltyval + epsexit + 1   
+    
+    if ((penaltyval > epsexit) .and. penalize ) then
+      performance_penalty_function%value = penaltyval*1.0D+06
+      performance_penalty_function%message_code = 24
+      performance_penalty_function%message = ' failed, turn speed of'//        & 
+        ' Cl interval'
+      performance_penalty_function%constrains_data = constrains_vector
+      return
+    end if  
+    
+    penaltyvaltotal = penaltyvaltotal + penaltyval
+    penaltyval = 0.d0
+    
+    ! Add penalty for V_turn to low
     penaltyval = penaltyval + max(0.d0,turn_V_min-turn%V)/(turn_V_min+1.0E-12)
     constrains_vector(1+nflap_optimize+3+naddthickconst+10+nmoment_constrain+  &  
                       nlift_constrain+ndrag_constrain+ntake_off_constrain+     &
@@ -1253,7 +1285,7 @@ function performance_penalty_function(constrains_vector, penalize, epsexit)
     if ((penaltyval > epsexit) .and. penalize ) then
       write(text,'(F7.2)') turn%V
       performance_penalty_function%value = penaltyval*1.0D+06
-      performance_penalty_function%message_code = 23
+      performance_penalty_function%message_code = 25
       performance_penalty_function%message = ' failed, too low turn speed. '// &
         'V_turn: '//trim(text) 
       performance_penalty_function%constrains_data = constrains_vector
@@ -1276,7 +1308,7 @@ function performance_penalty_function(constrains_vector, penalize, epsexit)
     if ( (penaltyval > epsexit) .and. penalize ) then
       write(text,'(F7.2)') dash%V_max
       performance_penalty_function%value = penaltyval*1.0D+06
-      performance_penalty_function%message_code = 24
+      performance_penalty_function%message_code = 26
       performance_penalty_function%message = ' failed, too low max speed. '//  &
         'RC_max: '//trim(text) 
       performance_penalty_function%constrains_data = constrains_vector
@@ -1295,7 +1327,7 @@ function performance_penalty_function(constrains_vector, penalize, epsexit)
     if ( (penaltyval > epsexit) .and. penalize ) then
       write(text,'(F7.2)') dash%t_accel
       performance_penalty_function%value = penaltyval*1.0D+06
-      performance_penalty_function%message_code = 25
+      performance_penalty_function%message_code = 27
       performance_penalty_function%message = ' failed, time of acceleration '//&
         'to dash speed below zero. t_acel to dash speed: '//trim(text) 
       performance_penalty_function%constrains_data = constrains_vector
@@ -1314,7 +1346,7 @@ function performance_penalty_function(constrains_vector, penalize, epsexit)
     if ( (penaltyval > epsexit) .and. penalize ) then
       write(text,'(F7.2)') dash%dist_accel
       performance_penalty_function%value = penaltyval*1.0D+06
-      performance_penalty_function%message_code = 26
+      performance_penalty_function%message_code = 28
       performance_penalty_function%message = ' failed, distance of '//         &
         'acceleration to dash speed below zero. dist_acel to dash speed: '//   &
         trim(text)
@@ -1334,7 +1366,7 @@ function performance_penalty_function(constrains_vector, penalize, epsexit)
     if ( (penaltyval > epsexit) .and. penalize ) then
       write(text,'(F7.2)') dash%dist
       performance_penalty_function%value = penaltyval*1.0D+06
-      performance_penalty_function%message_code = 27
+      performance_penalty_function%message_code = 29
       performance_penalty_function%message = ' failed, distance below zero. '//&
         'dist: '//trim(text) 
       performance_penalty_function%constrains_data = constrains_vector
@@ -1360,18 +1392,21 @@ function calculate_objective_function(moment, drag, lift, alpha, viscrms, xtrt,&
   xtrb, points, aero_vector)
 
   use vardef, only: noppoint, optimization_type, scale_factor, weighting,      &
-    target_value
+                    target_value, ntake_off_constrain, nclimb_constrain,       & 
+                    ndash_constrain
   use math_deps, only: derv1f1, derv1b1
 
   double precision, dimension(:), intent(inout) :: moment, drag, lift,         &
-    aero_vector
+                                                   aero_vector
   double precision, dimension(:), intent(in) :: points
   double precision, dimension(:), intent(in) :: alpha, viscrms, xtrt, xtrb
   double precision :: calculate_objective_function
   integer :: i
   double precision :: pi, increment
+  double precision, dimension(3) :: w
   
   pi = acos(-1.d0)
+  w(:) = 0
   
   calculate_objective_function = 0.d0
 
@@ -1546,9 +1581,10 @@ function calculate_objective_function(moment, drag, lift, alpha, viscrms, xtrt,&
 
       aero_vector(i) = 0.d0
       increment = 0.d0
-      if((i == noppoint) .or. (trim(optimization_type(i+1)) /= 'take-off')) then
-        aero_vector(i) = points(1)
+      if((i == noppoint) .or. (trim(optimization_type(i+1)) /= 'take-off'))then
+        aero_vector(i) = points(1)  
         increment = scale_factor(i)/points(1)
+        w(1) = weighting(i)    
       end if
       aero_vector(i+noppoint) = increment
       aero_vector(i+2*noppoint) = (1.d0 - increment)*100.d0
@@ -1558,7 +1594,8 @@ function calculate_objective_function(moment, drag, lift, alpha, viscrms, xtrt,&
       increment = 0.d0
       if((i == noppoint) .or. (trim(optimization_type(i+1)) /= 'climb')) then
         aero_vector(i) = points(2)
-        increment = scale_factor(i)/points(2)
+        increment = scale_factor(i)/points(2)   
+        w(2) = weighting(i)
       end if
       aero_vector(i+noppoint) = increment
       aero_vector(i+2*noppoint) = (1.d0 - increment)*100.d0
@@ -1568,7 +1605,8 @@ function calculate_objective_function(moment, drag, lift, alpha, viscrms, xtrt,&
       increment = 0.d0
       if((i == noppoint) .or. (trim(optimization_type(i+1)) /= 'dash')) then
         aero_vector(i) = points(3)
-        increment = scale_factor(i)/points(3)
+        increment = scale_factor(i)/points(3)   
+        w(3) = weighting(i)
       end if
       aero_vector(i+noppoint) = increment
       aero_vector(i+2*noppoint) = (1.d0 - increment)*100.d0
@@ -1589,9 +1627,17 @@ function calculate_objective_function(moment, drag, lift, alpha, viscrms, xtrt,&
 
     !   Add contribution to the objective function
 
-    calculate_objective_function = calculate_objective_function +              &
-      weighting(i)*increment
-
+    if((trim(optimization_type(i)) == 'take-off') .or. (trim(optimization_type  &
+      (i)) == 'climb') .or. (trim(optimization_type(i)) == 'dash'))then
+      if(i == noppoint)then
+        calculate_objective_function = calculate_objective_function + 1000/    &
+          ((w(1)*points(1)+w(2)*points(2)+w(3)*points(3))/(w(1)+w(2)+w(3)))
+      end if
+    else
+      calculate_objective_function = calculate_objective_function +            &
+        weighting(i)*increment
+    end if
+    
   end do
 
   aero_vector(1+3*noppoint) = calculate_objective_function
