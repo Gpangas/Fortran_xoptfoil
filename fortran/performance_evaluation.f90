@@ -164,7 +164,7 @@ subroutine climb_evaluation(oppoint_init, oppoint_end, drag, lift, points)
   end do
   
   climb%V = V(i_RC_max)
-  climb%Cl = lift(i_RC_max)
+  climb%Cl = lift(oppoint_init+i_RC_max-1)
   
   climb%t_accel = 0.d0
   if(climb%accel)then
