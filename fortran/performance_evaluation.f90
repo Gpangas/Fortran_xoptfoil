@@ -286,18 +286,20 @@ subroutine dash_evaluation(oppoint_init_d, oppoint_end_d, oppoint_init_t,      &
     
     turn%interval = .true.
     !Check if Turn velocity is in between Cl range 
-    if((T_t(1)-D_t(1)) .lt. 0.d0)then
+    if((T_t(1)-D_t(1)) .le. 0.d0)then
       turn%interval = .false.
       return 
+    else
+      turn%V = V_t(1)
     end if 
     
     !Calculate Turn Velocity
-    V_turn_calc: do i = 1, n_oppoint_turn
+    V_turn_calc: do i = 2, n_oppoint_turn
       if((T_t(i)-D_t(i)) .gt. 0.d0)then
         turn%V = V_t(i)
       else
-        turn%V = V_t(i)-(T_t(i)-D_t(i))/(((T_t(i)-D_t(i))-(T_t(i+1)-D_t(i+1)))/&
-                   (V_t(i)-V_t(i+1)))
+        turn%V = V_t(i)-(T_t(i)-D_t(i))/(((T_t(i)-D_t(i))-(T_t(i-1)-D_t(i-1)) &
+        )/(V_t(i)-V_t(i-1)))
         exit V_turn_calc
       end if
     end do V_turn_calc
