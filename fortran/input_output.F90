@@ -82,7 +82,7 @@ subroutine read_inputs(input_file, search_type, global_search, local_search,   &
   integer :: i, j, iunit, ioerr, iostat1
   character(30) :: text
   character(3) :: family
-  character(10) :: pso_convergence_profile, parents_selection_method
+  character(15) :: pso_convergence_profile, parents_selection_method
   character :: choice
  
   namelist /optimization_options/ search_type, global_search, local_search,    &
@@ -1829,11 +1829,12 @@ subroutine read_inputs(input_file, search_type, global_search, local_search,   &
       if (pso_maxit < 1) call my_stop("pso_maxit must be > 0.")
       if (pso_speed_limit <= 0.d0)                                             &
         call my_stop("pso_speed_limit must be > 0.")
-      if ( (trim(pso_convergence_profile) /= "quick") .and.                    &
-           (trim(pso_convergence_profile) /= "exhaustive") .and.               &
-           (trim(pso_convergence_profile) /= "standard") )                     &
+      if ( (trim(pso_convergence_profile) /= 'quick') .and.                    &
+           (trim(pso_convergence_profile) /= 'exhaustive') .and.               &
+           (trim(pso_convergence_profile) /= 'standard') .and.                 &
+           (trim(pso_convergence_profile) /= 'Butterworth') )                  &
         call my_stop("pso_convergence_profile must be 'exhaustive' "//&
-                     "or 'quick' or 'standard'.")
+                     "or 'quick' or 'standard' or 'Butterworth'.")
 
     else if (trim(global_search) == 'genetic_algorithm') then
 
@@ -2136,3 +2137,4 @@ function ask_forced_transition()
 end function ask_forced_transition
 
 end module input_output
+
