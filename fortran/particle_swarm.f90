@@ -46,7 +46,7 @@ module particle_swarm
     logical :: relative_fmin_report
                                   ! If .true., reports improvement over seed
                                   !   design. Otherwise, reports fmin itself.
-    character(10) :: convergence_profile
+    character(15) :: convergence_profile
                                   ! 'exhaustive' or 'quick'; exhaustive takes
                                   !   longer but finds better solutions 
   end type pso_options_type
@@ -145,15 +145,22 @@ subroutine particleswarm(xopt, fmin, step, fevals, objfunc, x0, xmin, xmax,    &
     
   else if (trim(pso_options%convergence_profile) == "standard") then
 
-    c1 = 1.49d0         ! particle-best trust factor
-    c2 = 1.49d0         ! swarm-best trust factor
+    c1 = 1.49d0        ! particle-best trust factor
+    c2 = 1.49d0        ! swarm-best trust factor
     whigh = 0.9d0      ! starting inertial parameter
     wlow = 0.4d0       ! ending inertial parameter
     convrate = (wlow-whigh)/(pso_options%maxit-1) ! linear rate
+    
+  else if (trim(pso_options%convergence_profile) == "Butterworth") then
+
+    c1 = 1.49d0        ! particle-best trust factor
+    c2 = 1.49d0        ! swarm-best trust factor
+    whigh = 0.5d0      ! starting inertial parameter
+    wlow = 0.4d0       ! ending inertial parameter 
 
   else
     write(*,*) "Error in particleswarm: convergence mode should be"//          &
-               "'exhaustive' or 'quick'."
+               "'exhaustive' or 'quick' or 'standard' or 'Butterworth'."
     stop
   end if
 
@@ -221,8 +228,11 @@ subroutine particleswarm(xopt, fmin, step, fevals, objfunc, x0, xmin, xmax,    &
     designcounter = 0
 
 !   Inertial parameter
-
-    wcurr = whigh
+    if (trim(pso_options%convergence_profile) == "Butterworth") then
+      wcurr = whigh + wlow
+    else
+      wcurr = whigh
+    end if
 
     ! Set restart time to zero
     restarttime =  0.d0
@@ -408,6 +418,8 @@ subroutine particleswarm(xopt, fmin, step, fevals, objfunc, x0, xmin, xmax,    &
 !   Reduce inertial parameter
   if (trim(pso_options%convergence_profile) == "standard") then
     wcurr = wcurr + convrate
+  else if (trim(pso_options%convergence_profile) == "Butterworth") then
+    wcurr = whigh/(1+(3*DBLE(step)/pso_options%maxit)**10) + wlow
   else
     wcurr = wcurr - convrate*(wcurr - wlow)
   end if
