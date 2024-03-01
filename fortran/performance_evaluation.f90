@@ -51,8 +51,7 @@ subroutine calculate_performance(moment, drag, lift, alpha, viscrms, points)
       if((i == 1) .or. (trim(optimization_type(i-1)) /= 'take-off')) ninit_1 = i
       if((i == noppoint) .or. (trim(optimization_type(i+1)) /= 'take-off')) then
         nend_1 = i
-        call take_off_evaluation(lift(ninit_1), lift(nend_1), drag(nend_1),    &
-          points(1))
+        call take_off_evaluation(ninit_1, nend_1, drag, lift, points(1))
         if(weight_min > weight) return
       end if
     elseif (trim(optimization_type(i)) == 'climb') then
@@ -84,39 +83,49 @@ end subroutine calculate_performance
 ! Take-off evaluation
 !
 !=============================================================================80  
-subroutine take_off_evaluation(Cl_int, Cl_end, Cd_end, points)
+subroutine take_off_evaluation(oppoint_init, oppoint_end, drag, lift, points)
 
   use aircraft_polar
   use vardef, only : weight, weight_i, S_w, take_off, climb
 
-  double precision, intent(in) :: Cl_int, Cl_end, Cd_end
+  integer, intent(in) :: oppoint_init, oppoint_end
+  double precision, dimension(:), intent(in) :: drag, lift
   double precision, intent(out) :: points
   
+  integer :: i, n_oppoint_to
   double precision, parameter :: n=1, g = 9.80665
   double precision :: converge
   double precision :: rho
   double precision :: Cl_max, V_s
-  double precision :: Cl_run, Cd_run, thurst
+  double precision, allocatable :: CL(:), CD(:), T(:)
   double precision :: S_g_i
   double precision :: weight_payload
   
-  Cl_max = 0.9 * Cl_int
+  n_oppoint_to = oppoint_end - oppoint_init
+  
+  allocate(CL(n_oppoint_to), CD(n_oppoint_to), T(n_oppoint_to))
+  
+  Cl_max = 0.9 * lift(oppoint_init)
   call rho_calculation(take_off%h, rho)
   weight = weight_i
   V_s = sqrt(abs(2*weight/(rho*Cl_max*S_w)))  
   take_off%V_to = take_off%A_1 * V_s
   take_off%V_run = take_off%V_to/sqrt(2.0_8)
-  call aircraft_data_take_off(Cl_end, Cd_end, n, take_off%h, take_off%V_run,   &
-      Cl_run, Cd_run, thurst)
+  do i=1, n_oppoint_to
+    call aircraft_data_take_off(lift(oppoint_init+i), drag(oppoint_init+i), n,&
+           take_off%h, take_off%V_run, CL(i), Cd(i), T(i))
+  end do
   converge = 1
   do while (converge > 1E-5)
     V_s = sqrt(abs(2*weight/(rho*Cl_max*S_w)))  
     take_off%V_to = take_off%A_1 * V_s
     take_off%V_run = take_off%V_to/sqrt(2.0_8)
-
-    S_g_i = ((take_off%A_1**2)*(weight/S_w))/(rho*g*((thurst/weight-           & 
-      take_off%miu)*Cl_max+((take_off%A_1**2)/2)*(take_off%miu*Cl_run-Cd_run)))
-    
+    S_g_i = 0.d0
+    do i=1, n_oppoint_to
+      S_g_i = S_g_i + (((take_off%A_1**2)*(weight/S_w))/(rho*g*((T(i)/weight-  & 
+        take_off%miu)*Cl_max+((take_off%A_1**2)/2)*(take_off%miu*CL(i)-CD(i))) &
+        ))/n_oppoint_to
+    end do
     converge = abs((take_off%S_g-S_g_i) / take_off%S_g)
     weight = weight*(1 + 0.5*(take_off%S_g-S_g_i) / take_off%S_g)
   end do 
@@ -124,6 +133,8 @@ subroutine take_off_evaluation(Cl_int, Cl_end, Cd_end, points)
   climb%V_0 = take_off%V_to
   weight_payload = weight - take_off%weight_empty
   points = weight_payload/take_off%weight_payload_ref * 1000 
+  
+  deallocate(CL, CD, T)
 
 end subroutine take_off_evaluation
 !=============================================================================80
