@@ -1832,9 +1832,14 @@ subroutine read_inputs(input_file, search_type, global_search, local_search,   &
       if ( (trim(pso_convergence_profile) /= 'quick') .and.                    &
            (trim(pso_convergence_profile) /= 'exhaustive') .and.               &
            (trim(pso_convergence_profile) /= 'standard') .and.                 &
-           (trim(pso_convergence_profile) /= 'Butterworth') )                  &
-        call my_stop("pso_convergence_profile must be 'exhaustive' "//&
-                     "or 'quick' or 'standard' or 'Butterworth'.")
+           (trim(pso_convergence_profile) /= 'linear') .and.                   &
+           (trim(pso_convergence_profile) /= 'constant') .and.                 &
+           (trim(pso_convergence_profile) /= 'exponential') .and.              &
+           (trim(pso_convergence_profile) /= 'concave') .and.                  &
+           (trim(pso_convergence_profile) /= 'tangent') )                      &
+        call my_stop("pso_convergence_profile must be 'exhaustive' or "//      &
+                     "'quick' or 'standard' or 'linear' or 'constant' or "//   &
+                     "'exponential' or 'concave' or 'tangent'.")
 
     else if (trim(global_search) == 'genetic_algorithm') then
 
