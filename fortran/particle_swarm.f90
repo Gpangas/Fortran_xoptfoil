@@ -451,10 +451,10 @@ subroutine particleswarm(xopt, fmin, step, fevals, objfunc, x0, xmin, xmax,    &
       (trim(pso_options%convergence_profile) == "linear")) then
     wcurr = wcurr + convrate
   else if (trim(pso_options%convergence_profile) == "concave") then
-    wcurr = whigh - (whigh - wend)*(DBLE(step)/pso_options%maxit)**2
+    wcurr = whigh - (whigh - wlow)*(DBLE(step)/pso_options%maxit)**2
   else if (trim(pso_options%convergence_profile) == "tangent") then
-    wcurr = (whigh - wend)*tan(0.875*(1-(DBLE(step)/pso_options%maxit)**0.6))  &
-        + wend
+    wcurr = (whigh - wlow)*tan(0.875*(1-(DBLE(step)/pso_options%maxit)**0.6))  &
+        + wlow
   else
     wcurr = wcurr - convrate*(wcurr - wlow)
   end if
