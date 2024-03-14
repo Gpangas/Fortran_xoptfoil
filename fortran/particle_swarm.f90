@@ -151,16 +151,50 @@ subroutine particleswarm(xopt, fmin, step, fevals, objfunc, x0, xmin, xmax,    &
     wlow = 0.4d0       ! ending inertial parameter
     convrate = (wlow-whigh)/(pso_options%maxit-1) ! linear rate
     
-  else if (trim(pso_options%convergence_profile) == "Butterworth") then
+  else if (trim(pso_options%convergence_profile) == "constant") then
 
     c1 = 1.49d0        ! particle-best trust factor
     c2 = 1.49d0        ! swarm-best trust factor
-    whigh = 0.5d0      ! starting inertial parameter
-    wlow = 0.4d0       ! ending inertial parameter 
+    whigh = 0.73d0     ! starting inertial parameter
+    wlow = 0.73d0      ! ending inertial parameter
+    convrate = 0.d0    ! Constant rate
+
+  else if (trim(pso_options%convergence_profile) == "linear") then
+
+    c1 = 1.49d0        ! particle-best trust factor
+    c2 = 1.49d0        ! swarm-best trust factor
+    whigh = 1.1d0      ! starting inertial parameter
+    wlow = 0.5d0       ! ending inertial parameter
+    convrate = (wlow-whigh)/(pso_options%maxit-1) ! linear rate
+    
+  else if (trim(pso_options%convergence_profile) == "exponential") then
+
+    c1 = 1.49d0        ! particle-best trust factor
+    c2 = 1.49d0        ! swarm-best trust factor
+    whigh = 1.4d0      ! starting inertial parameter
+    wlow = 0.6d0       ! ending inertial parameter
+    convrate = 0.05d0  ! inertial parameter reduction rate
+    
+  else if (trim(pso_options%convergence_profile) == "concave") then
+
+    c1 = 1.49d0        ! particle-best trust factor
+    c2 = 1.49d0        ! swarm-best trust factor
+    whigh = 1.4d0      ! starting inertial parameter
+    wlow = 0.6d0       ! ending inertial parameter
+    convrate = 0.0d0   ! inertial parameter reduction rate
+    
+  else if (trim(pso_options%convergence_profile) == "tangent") then
+
+    c1 = 1.49d0        ! particle-best trust factor
+    c2 = 1.49d0        ! swarm-best trust factor
+    whigh = 1.4d0      ! starting inertial parameter
+    wlow = 0.6d0       ! ending inertial parameter
+    convrate = 0.0d0   ! inertial parameter reduction rate
 
   else
     write(*,*) "Error in particleswarm: convergence mode should be"//          &
-               "'exhaustive' or 'quick' or 'standard' or 'Butterworth'."
+               "'exhaustive' or 'quick' or 'standard' or 'linear' or "//       &
+               "'constant' or 'exponential' or 'concave' or 'tangent'."
     stop
   end if
 
@@ -228,11 +262,7 @@ subroutine particleswarm(xopt, fmin, step, fevals, objfunc, x0, xmin, xmax,    &
     designcounter = 0
 
 !   Inertial parameter
-    if (trim(pso_options%convergence_profile) == "Butterworth") then
-      wcurr = whigh + wlow
-    else
-      wcurr = whigh
-    end if
+    wcurr = whigh
 
     ! Set restart time to zero
     restarttime =  0.d0
@@ -416,10 +446,15 @@ subroutine particleswarm(xopt, fmin, step, fevals, objfunc, x0, xmin, xmax,    &
 !$omp master
 
 !   Reduce inertial parameter
-  if (trim(pso_options%convergence_profile) == "standard") then
+  if ((trim(pso_options%convergence_profile) == "standard") .or.               &
+      (trim(pso_options%convergence_profile) == "constant") .or.               & 
+      (trim(pso_options%convergence_profile) == "linear")) then
     wcurr = wcurr + convrate
-  else if (trim(pso_options%convergence_profile) == "Butterworth") then
-    wcurr = whigh/(1+(3*DBLE(step)/pso_options%maxit)**10) + wlow
+  else if (trim(pso_options%convergence_profile) == "concave") then
+    wcurr = whigh - (whigh - wend)*(DBLE(step)/pso_options%maxit)**2
+  else if (trim(pso_options%convergence_profile) == "tangent") then
+    wcurr = (whigh - wend)*tan(0.875*(1-(DBLE(step)/pso_options%maxit)**0.6))  &
+        + wend
   else
     wcurr = wcurr - convrate*(wcurr - wlow)
   end if
